@@ -1,7 +1,9 @@
 import pygame
 import random
 import sys
-
+import os
+import time  # 追加
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # --- 1. 設定とクラス定義 ---
 
 # 色の定義
@@ -46,23 +48,31 @@ pygame.init()
 screen = pygame.display.set_mode((640, 480))
 pygame.display.set_caption("テキストバトル RPG")
 
-# 日本語フォントの設定（環境に合わせてフォントを探します）
-font_name = pygame.font.match_font('meiryo', 'yu gothic', 'hiragino maru gothic pro')
-font = pygame.font.Font(font_name, 24)
+# 日本語フォントの設定（ドラクエ風にMS Gothicを使用）
+font_name = pygame.font.match_font('msgothic', 'meiryo', 'yu gothic')
+font = pygame.font.Font(font_name, 20)
+small_font = pygame.font.Font(font_name, 14)  # 小さいフォント
 
-# --- 3. ゲームデータの準備 ---
-hero = Unit(name="勇者", hp=100, attack=30, defense=10)
-demon = Unit(name="魔王", hp=250, attack=25, defense=5)
+# --- 3. ゲームデータの準備関数 ---
+def init_game():
+    global hero, demon, battle_logs, turn, game_over, game_over_time
+    hero = Unit(name="勇者", hp=100, attack=30, defense=10)
+    demon = Unit(name="魔王", hp=250, attack=25, defense=5)
+    battle_logs = ["スペースキーを押してバトル開始！"]
+    turn = "PLAYER"
+    game_over = False
+    game_over_time = None
 
-# 戦闘ログ（画面に表示するテキストのリスト）
-battle_logs = ["スペースキーを押してバトル開始！"]
-
-turn = "PLAYER" # どちらのターンか
-game_over = False
+init_game()  # 初期化
 
 # --- 4. メインループ ---
 running = True
 while running:
+    # ゲームオーバー時は3秒後に終了
+    if game_over and game_over_time and time.time() - game_over_time > 3:
+        running = False
+        break
+
     screen.fill(BLACK) # 画面をリセット
 
     # イベント処理
@@ -83,6 +93,7 @@ while running:
                     if not demon.is_alive():
                         battle_logs.append("魔王を倒した！")
                         game_over = True
+                        game_over_time = time.time()
                     else:
                         turn = "ENEMY" # 相手のターンへ
                 
@@ -94,34 +105,40 @@ while running:
                     if not hero.is_alive():
                         battle_logs.append("勇者は力尽きた...")
                         game_over = True
+                        game_over_time = time.time()
                     else:
                         turn = "PLAYER" # プレイヤーのターンへ
-            else:
-                # ゲームオーバー後
-                battle_logs.append("ゲーム終了。閉じるボタンで終了してください。")
 
     # --- 描画処理 ---
-    
-    # 1. ステータス表示（画面上部）
-    hero_text = font.render(f"{hero.name} HP: {hero.hp}/{hero.max_hp}", True, WHITE)
-    demon_text = font.render(f"{demon.name} HP: {demon.hp}/{demon.max_hp}", True, RED)
-    screen.blit(hero_text, (50, 50))
-    screen.blit(demon_text, (400, 50))
+    if game_over:
+        # ゲームオーバー画面
+        gameover_text = font.render("GAME OVER", True, RED)
+        screen.blit(gameover_text, (250, 200))
+    else:
+        # 通常の描画
+        # 1. ステータス表示（画面上部）
+        hero_text = font.render(f"{hero.name} HP: {hero.hp}/{hero.max_hp}", True, WHITE)
+        demon_text = font.render(f"{demon.name} HP: {demon.hp}/{demon.max_hp}", True, RED)
+        screen.blit(hero_text, (50, 50))
+        screen.blit(demon_text, (400, 50))
 
-    # 2. ログの表示（最新の5行だけ表示する）
-    # リストの後ろから5つを取得して表示
-    recent_logs = battle_logs[-5:] 
-    
-    y = 150 # テキストを表示し始めるY座標
-    for log in recent_logs:
-        text_surface = font.render(log, True, WHITE)
-        screen.blit(text_surface, (50, y))
-        y += 40 # 行間をあける
+        # 2. ログの表示（ドラクエ風ウィンドウ内、画面下部）
+        # ウィンドウの背景と枠を描画
+        window_rect = pygame.Rect(50, 250, 540, 200)  # 下部に移動
+        pygame.draw.rect(screen, BLACK, window_rect)  # 背景黒
+        pygame.draw.rect(screen, WHITE, window_rect, 2)  # 白い枠
+        
+        # 最新の5行を表示
+        recent_logs = battle_logs[-5:]
+        y = 270  # ウィンドウ内の開始Y座標
+        for log in recent_logs:
+            text_surface = font.render(log, True, WHITE)
+            screen.blit(text_surface, (70, y))
+            y += 35  # 行間
 
-    # 3. 操作ガイド
-    if not game_over:
-        guide_text = font.render("[SPACE]でターンを進める", True, (100, 255, 100))
-        screen.blit(guide_text, (200, 400))
+        # 3. 操作ガイド（右下に小さく表示）
+        guide_text = small_font.render("[SPACE]でターンを進める", True, (100, 255, 100))
+        screen.blit(guide_text, (450, 450))  # 右下に移動
 
     pygame.display.flip()
 
