@@ -48,6 +48,13 @@ pygame.init()
 screen = pygame.display.set_mode((640, 480))
 pygame.display.set_caption("テキストバトル RPG")
 
+# 背景画像のロード
+bg_img = pygame.image.load("fig/nohara.jpg")
+bg_img = pygame.transform.scale(bg_img, (640, 480))  # 画面サイズに合わせる
+bg_img2 = pygame.image.load("fig/mori2.jpg")
+bg_img2 = pygame.transform.scale(bg_img2, (640, 480))
+bg_img3 = pygame.image.load("fig/maou.jpg")
+bg_img3 = pygame.transform.scale(bg_img3, (640, 480)) 
 # 日本語フォントの設定（ドラクエ風にMS Gothicを使用）
 font_name = pygame.font.match_font('msgothic', 'meiryo', 'yu gothic')
 font = pygame.font.Font(font_name, 20)
@@ -66,20 +73,16 @@ def init_game():
 init_game()  # 初期化
 
 # --- 4. メインループ ---
-running = True
-while running:
+while True:
     # ゲームオーバー時は3秒後に終了
-    if game_over and game_over_time and time.time() - game_over_time > 3:
-        running = False
+    if game_over and game_over_time and time.time() - game_over_time > 1:
         break
 
-    screen.fill(BLACK) # 画面をリセット
+    screen.blit(bg_img3, [0, 0])  # 背景画像を描画
 
     # イベント処理
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running = False
-            # ウィンドウの閉じるボタンが押されたらループを抜ける
             break
         
         # スペースキーが押されたらターンを進める
@@ -111,10 +114,12 @@ while running:
 
     # --- 描画処理 ---
     if game_over:
+        screen.fill(BLACK)  # ゲームオーバー時は黒背景
         # ゲームオーバー画面
         gameover_text = font.render("GAME OVER", True, RED)
         screen.blit(gameover_text, (250, 200))
     else:
+        screen.blit(bg_img3, [0, 0])  # 通常時は背景画像
         # 通常の描画
         # 1. ステータス表示（画面上部）
         hero_text = font.render(f"{hero.name} HP: {hero.hp}/{hero.max_hp}", True, WHITE)
@@ -142,5 +147,7 @@ while running:
 
     pygame.display.flip()
 
-pygame.quit()
-sys.exit()
+if __name__ == "__main__":
+    pygame.init()
+    pygame.quit()
+    sys.exit()
