@@ -43,6 +43,9 @@ class Unit:
         self.hp = hp
         self.attack_power = attack
         self.defense_power = defense
+        self.xp = 0
+        self.level = 1
+        self.nextlevel = self.level * 100
 
     def is_alive(self):
         return self.hp > 0
@@ -56,6 +59,86 @@ class Unit:
         if snd_attack:
             snd_attack.play()
         return f"{self.name}の攻撃！ {target.name}に {damage} のダメージ！"
+    
+    def check_level(self, amount: int) -> list:
+        """
+        レベルが上がるかどうか判定する
+        レベルアップ時ステータスを強化する
+        amount: 入手した経験値
+        """
+        self.xp += amount
+        messages = [f"{self.name}は経験値{amount}を獲得した！"]
+        while self.xp >= self.nextlevel:
+            if self.level >= 99:
+                self.xp = self.nextlevel - 1
+                break
+            self.xp -= self.nextlevel
+            self.level += 1
+            self.max_hp += 10
+            self.hp = self.max_hp
+            self.attack_power += 3
+            self.defense_power += 2
+
+            self.nextlevel = self.level * 100
+            messages.append(f"{self.name}はレベル{self.level}に上がった！")
+        return messages 
+
+
+def draw_xp_bar(surface: pygame.Surface, unit: Unit, x: int, y: int, bar_width: int = 200, bar_height: int = 10) -> None:
+    """
+    指定されたUnitの経験値バーを画面に描画する
+
+    引数1 surface: 描画先のPygame Surface
+    引数2 unit: xpをもつUnitオブジェクト。
+    引数3 x: バーの左上X座標
+    引数4 y: バーの左上Y座標
+    引数5 bar_width: バーの全体の幅
+    引数6 bar_height: バーの高さ
+    """
+    if unit.nextlevel == 0 or unit.level >= 99:
+        ratio = 1.0
+    else:
+        ratio = unit.xp / unit.nextlevel
+    
+    xp_color = (150, 150, 255)
+
+    background_rect = pygame.Rect(x, y, bar_width, bar_height)
+    pygame.draw.rect(surface, WHITE, background_rect, 1)
+
+    current_width = int(bar_width * ratio)
+    xp_rect = pygame.Rect(x, y, current_width, bar_height)
+    pygame.draw.rect(surface, xp_color, xp_rect)
+
+
+def draw_health_bar(surface: pygame.Surface, unit: Unit, x: int, y: int, bar_width: int = 200, bar_height: int = 20) -> None:
+    """
+    指定されたUnitのHPバーを描画する関数
+    
+    引数1 surface: 描画先のPygame Surface
+    引数2 unit: HPを持つUnitオブジェクト
+    引数3 x: バーの左上X座標
+    引数4 y: バーの左上Y座標
+    引数5 bar_width: バーの全体の幅
+    引数6 bar_height: バーの高さ
+    """
+    
+    # HPの割合を計算
+    ratio = unit.hp / unit.max_hp
+    
+    # 描画色を決定（勇者は緑、魔王は赤）
+    if unit.name == "勇者":
+        bar_color = (0, 255, 0) 
+    else:
+        bar_color = RED         
+
+    # 1. バーの背景（全体）を描画
+    background_rect = pygame.Rect(x, y, bar_width, bar_height)
+    pygame.draw.rect(surface, WHITE, background_rect, 1) # 白い枠線
+    
+    # 2. 現在のHPに応じたバー（中身）を描画
+    current_width = int(bar_width * ratio)  
+    hp_rect = pygame.Rect(x, y, current_width, bar_height)
+    pygame.draw.rect(surface, bar_color, hp_rect)
 
 # --- 2. 画面とフォントの設定 ---
 screen = pygame.display.set_mode((640, 480))
@@ -115,6 +198,7 @@ def init_battle(stage_num):
 play_bgm("./future.mp3")
 battle_logs = ["1-5キーでステージを選択してください。"]
 
+
 # --- 4. メインループ ---
 running = True
 clock = pygame.time.Clock()
@@ -144,13 +228,9 @@ while running:
                             battle_logs.append(msg)
                             if not demon.is_alive():
                                 battle_logs.append(f"{demon.name}を倒した！")
-                                # 成長システム
-                                hero.max_hp += 20
-                                hero.hp = hero.max_hp
-                                hero.attack_power += 5
-                                hero.defense_power += 2
-                                battle_logs.append("勇者のレベルが上がった！")
-                                
+                                xp_messages = hero.check_level(200)
+                                battle_logs.extend(xp_messages)
+                        
                                 if current_stage == 5:
                                     mode = 'CLEAR'
                                     play_bgm("./ccs.wav")
@@ -158,16 +238,16 @@ while running:
                                     game_over = True # Rで戻るか次への待機
                             else:
                                 turn = "ENEMY"
-                        
-                        elif turn == "ENEMY":
+                        elif turn =="ENEMY":
                             msg = demon.attack(hero)
                             battle_logs.append(msg)
                             if not hero.is_alive():
                                 battle_logs.append("勇者は力尽きた...")
-                                mode = "gameover"
+                                mode ="gameover"
                             else:
                                 turn = "PLAYER"
-                
+                        
+                        
                 # ゲームオーバー/勝利後の操作
                 if game_over and event.key == pygame.K_r:
                     mode = 'SELECT'
@@ -175,9 +255,9 @@ while running:
                     battle_logs.append("ステージ選択に戻りました。")
 
             # --- クリアモード ---
-            elif mode == 'CLEAR':
-                if event.key in [pygame.K_q, pygame.K_ESCAPE]:
-                    running = False
+                elif mode == 'CLEAR':
+                    if event.key in [pygame.K_q, pygame.K_ESCAPE]:
+                        running = False
 
     if mode == 'gameover':
         gameover_text = font.render("GAME OVER", True, RED)
@@ -223,6 +303,9 @@ while running:
         demon_txt = font.render(f"{demon.name} HP: {demon.hp}/{demon.max_hp}", True, RED)
         screen.blit(hero_txt, (50, 50))
         screen.blit(demon_txt, (390, 50))
+        draw_health_bar(screen, hero, 50, 80)
+        draw_health_bar(screen, demon, 400, 80)
+        draw_xp_bar(screen, hero, 50, 100)
         
         # ログウィンドウ
         win_rect = pygame.Rect(50, 300, 540, 150)
@@ -233,6 +316,8 @@ while running:
         for i, log in enumerate(recent_logs):
             screen.blit(font.render(log, True, WHITE), (70, 310 + i*30))
     
+
+
 
     elif mode == 'CLEAR':
         screen.fill(BLACK)
