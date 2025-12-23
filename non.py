@@ -3,13 +3,7 @@ import random
 import sys
 import os
 import time
-
-# 絶対パスを取得し、カレントディレクトリを変更
-try:
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-except:
-    pass
-
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # --- 1. 設定とクラス定義 ---
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -78,10 +72,85 @@ class Unit:
             self.hp = self.max_hp
             self.attack_power += 3
             self.defense_power += 2
-
-            self.nextlevel = self.level * 100
+            self.nextlevel = self.level*100
             messages.append(f"{self.name}はレベル{self.level}に上がった！")
-        return messages 
+        return messages
+
+
+class BattleSprite:
+    """
+    戦闘キャラクターの描画
+    """
+    def __init__(self, image_path, x, y, size=(100, 100)):
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.image = pygame.transform.scale(self.image, size)
+        self.x = x
+        self.y = y
+        self.base_x = x
+        self.base_y = y
+        self.visible = False  # ← 最初は表示しない
+
+        self.shake_timer = 0
+        self.shake_power = 8 #  揺れの大きさ
+
+    def show(self):
+        self.visible = True
+
+    def hide(self):
+        """
+        表示を消す（SELECTモードに戻したときなど）
+        """
+        self.visible = False
+        self.x = self.base_x
+        self.y = self.base_y
+
+    def hit(self):
+        """
+        被弾時
+        """
+        self.shake_timer = 40 #  揺れるフレーム数
+
+    def update(self):
+        if self.shake_timer > 0:
+            offset = random.randint(-self.shake_power, self.shake_power)
+            self.x = self.base_x + offset
+            self.shake_timer -= 1
+        else:
+            self.x = self.base_x
+
+    def draw(self, screen):
+        if self.visible:
+            screen.blit(self.image, (self.x, self.y))
+
+class AttackEffect:
+    """
+    攻撃エフェクトの描画
+    """
+    def __init__(self, image_path, x, y, size=(50, 50)):
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.image = pygame.transform.scale(self.image, size)
+        self.x = x
+        self.y = y
+        self.timer = 0
+        self.visible = False
+
+    def play(self):
+        self.timer = 40   # 表示フレーム数
+        self.visible = True
+
+    def update(self):
+        if self.timer > 0:
+            self.timer -= 1
+        else:
+            self.visible = False
+
+    def draw(self, screen):
+        if self.visible:
+            screen.blit(self.image, (self.x, self.y))
+
+
+
+             
 
 
 def draw_xp_bar(surface: pygame.Surface, unit: Unit, x: int, y: int, bar_width: int = 200, bar_height: int = 10) -> None:
@@ -165,6 +234,10 @@ for file_name in bg_file_names:
 # --- 3. ゲーム管理変数 ---
 hero = Unit(name="勇者", hp=100, attack=30, defense=10)
 demon = None
+demon_sprite = BattleSprite("images/go-remu.png", 400, 120)  # 敵のインスタンス生成
+hero_sprite = BattleSprite("images/hero.png", 50, 120)  # 勇者のインスタンス生成
+slash_effect = AttackEffect("images/slash.png", 380, 180)  # 勇者の攻撃エフェクトのインスタンス生成
+slash2_effect = AttackEffect("images/slash2.png", 130, 180)  # 敵の攻撃エフェクトのインスタンス生成
 battle_logs = []
 mode = 'SELECT' # 'SELECT', 'BATTLE', 'CLEAR'
 turn = "PLAYER"
@@ -223,8 +296,12 @@ while running:
             elif mode == 'BATTLE':
                 if not game_over:
                     if event.key == pygame.K_SPACE:
+                        hero_sprite.show()  # 勇者の呼び出し
+                        demon_sprite.show()  # 敵の呼び出し
                         if turn == "PLAYER":
                             msg = hero.attack(demon)
+                            demon_sprite.hit()  # 敵が揺れる
+                            slash_effect.play()  # 勇者の攻撃エフェクト
                             battle_logs.append(msg)
                             if not demon.is_alive():
                                 battle_logs.append(f"{demon.name}を倒した！")
@@ -240,6 +317,8 @@ while running:
                                 turn = "ENEMY"
                         elif turn =="ENEMY":
                             msg = demon.attack(hero)
+                            hero_sprite.hit()  # 勇者が揺れる
+                            slash2_effect.play()  # 敵の攻撃エフェクト
                             battle_logs.append(msg)
                             if not hero.is_alive():
                                 battle_logs.append("勇者は力尽きた...")
@@ -253,6 +332,17 @@ while running:
                     mode = 'SELECT'
                     play_bgm("./future.mp3")
                     battle_logs.append("ステージ選択に戻りました。")
+                    # キャラ表示を消す
+                    try:
+                        hero_sprite.hide()
+                        demon_sprite.hide()
+                        # エフェクトも停止して非表示にする
+                        slash_effect.visible = False
+                        slash_effect.timer = 0
+                        slash2_effect.visible = False
+                        slash2_effect.timer = 0
+                    except Exception:
+                        pass
 
             # --- クリアモード ---
                 elif mode == 'CLEAR':
@@ -315,9 +405,6 @@ while running:
         recent_logs = battle_logs[-4:]
         for i, log in enumerate(recent_logs):
             screen.blit(font.render(log, True, WHITE), (70, 310 + i*30))
-    
-
-
 
     elif mode == 'CLEAR':
         screen.fill(BLACK)
@@ -325,6 +412,29 @@ while running:
         sub = font.render("Good Morning, Hero... (Qで終了)", True, WHITE)
         screen.blit(txt, (txt.get_rect(center=(320, 200))))
         screen.blit(sub, (sub.get_rect(center=(320, 280))))
+
+    # 2. ログの表示（最新の5行だけ表示する）
+    # リストの後ろから5つを取得して表示
+    recent_logs = battle_logs[-5:] 
+
+    # 3. キャラの表示
+    hero_sprite.update()
+    demon_sprite.update()
+    hero_sprite.draw(screen)
+    demon_sprite.draw(screen)
+    slash_effect.update()
+    slash_effect.draw(screen)
+    slash2_effect.update()
+    slash2_effect.draw(screen)
+    
+    # y = 150 # テキストを表示し始めるY座標
+    # for log in recent_logs:
+    #     text_surface = font.render(log, True, WHITE)
+    #     # screen.blit(text_surface, (50, y))
+    #     y += 40 # 行間をあける
+
+
+    
 
     pygame.display.flip()
     clock.tick(30)
