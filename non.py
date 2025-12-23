@@ -65,7 +65,7 @@ font = pygame.font.Font(font_name, 24)
 big_font = pygame.font.Font(font_name, 48)
 
 # --- 3. ゲームデータの準備 ---
-hero = Unit(name="勇者", hp=100, attack=300000000, defense=10)
+hero = Unit(name="勇者", hp=100, attack=30, defense=10)
 demon = Unit(name="敵", hp=250, attack=25, defense=5)
 
 # 戦闘ログ（画面に表示するテキストのリスト）
@@ -110,11 +110,8 @@ while running:
                     hero.hp = hero.max_hp  # ヒーローを回復して開始
                     battle_logs.append("ステージ1を選択しました（易しい）")
                     mode = 'BATTLE'
-                    try:
-                        pygame.mixer.music.load("./honey.mp3")
-                        pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    pygame.mixer.music.load("./honey.mp3")
+                    pygame.mixer.music.play(-1)
                 elif event.key == pygame.K_2:
                     stage = 2
                     demon.max_hp = 500
@@ -124,11 +121,9 @@ while running:
                     hero.hp = hero.max_hp
                     battle_logs.append("ステージ2を選択しました（普通）")
                     mode = 'BATTLE'
-                    try:
-                        pygame.mixer.music.load("./honey.mp3")
-                        pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    pygame.mixer.music.load("./honey.mp3")
+                    pygame.mixer.music.play(-1)
+
                 elif event.key == pygame.K_3:
                     stage = 3
                     demon.max_hp = 1000
@@ -138,11 +133,9 @@ while running:
                     hero.hp = hero.max_hp
                     battle_logs.append("ステージ3を選択しました（難しい）")
                     mode = 'BATTLE'
-                    try:
-                        pygame.mixer.music.load("./honey.mp3")
-                        pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    pygame.mixer.music.load("./honey.mp3")
+                    pygame.mixer.music.play(-1)
+                    
                 elif event.key == pygame.K_4:
                     stage = 4
                     demon.max_hp = 5000
@@ -152,11 +145,8 @@ while running:
                     hero.hp = hero.max_hp
                     battle_logs.append("ステージ4を選択しました（激ムズ）")
                     mode = 'BATTLE'
-                    try:
-                        pygame.mixer.music.load("./honey.mp3")
-                        pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    pygame.mixer.music.load("./honey.mp3")
+                    pygame.mixer.music.play(-1)
                 elif event.key == pygame.K_5:
                     stage = 5
                     demon.max_hp = 10000
@@ -166,11 +156,9 @@ while running:
                     hero.hp = hero.max_hp
                     battle_logs.append("ステージ5を選択しました（魔王）")
                     mode = 'BATTLE'
-                    try:
-                        pygame.mixer.music.load("./honey.mp3")
-                        pygame.mixer.music.play(-1)
-                    except Exception:
-                        pass
+                    pygame.mixer.music.load("./honey.mp3")
+                    pygame.mixer.music.play(-1)
+
 
         # バトルモード
         elif mode == 'BATTLE':
@@ -213,7 +201,7 @@ while running:
                             game_over = True
                             # クリア画面へ移行
                             clear_start_time = pygame.time.get_ticks()
-                            # クリアBGMを再生（存在しない場合は停止）
+                            # クリアBGMを再生
                             pygame.mixer.music.load("./ccs.wav")
                             pygame.mixer.music.play(-1)
                         else:
