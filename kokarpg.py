@@ -382,7 +382,7 @@ while running:
                         # battle_logs.append(msg)
                         
                         if not demon.is_alive():
-                            battle_logs.append("魔王を倒した！")
+                            battle_logs.append("敵を倒した！")
                             xp_messages = hero.check_level(200)
                             battle_logs.extend(xp_messages)
                             if current_stage == 5:
