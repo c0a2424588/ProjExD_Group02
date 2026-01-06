@@ -383,7 +383,7 @@ while running:
                         
                         if not demon.is_alive():
                             battle_logs.append("敵を倒した！")
-                            xp_messages = hero.check_level(200)
+                            xp_messages = hero.check_level(current_stage * 200)
                             battle_logs.extend(xp_messages)
                             if current_stage == 5:
                                     mode = 'CLEAR'
